@@ -9,7 +9,7 @@ import numpy as np
 from torch import nn
 import torch.optim as optim
 
-from hw5.roble.infrastructure.atari_wrappers import wrap_deepmind
+from hw8.roble.infrastructure.atari_wrappers import wrap_deepmind
 from gym.envs.registration import register
 
 import torch
@@ -18,7 +18,7 @@ import torch
 class Flatten(torch.nn.Module):
     def forward(self, x):
         batch_size = x.shape[0]
-        return x.view(batch_size, -1)
+        return x.reshape(batch_size, -1)
 
 OptimizerSpec = namedtuple(
     "OptimizerSpec",
@@ -31,32 +31,34 @@ def register_custom_envs():
     if 'LunarLander-v3' not in registry.env_specs:
         register(
             id='LunarLander-v3',
-            entry_point='roble.envs.box2d.lunar_lander:LunarLander',
+            entry_point='hw8.roble.envs.box2d.lunar_lander:LunarLander',
             max_episode_steps=1000,
             reward_threshold=200,
         )
     if 'DrunkSpider-v0' not in registry.env_specs:
         register(
             id='DrunkSpider-v0',
-            entry_point='roble.envs.drunkspider.drunkspider:DrunkSpider',
+            entry_point='hw8.roble.envs.drunkspider.drunkspider:DrunkSpider',
             kwargs={}
         )
     if 'PointmassEasy-v0' not in registry.env_specs:
         register(
             id='PointmassEasy-v0',
-            entry_point='roble.envs.pointmass.pointmass:Pointmass',
+            entry_point='hw8.roble.envs.pointmass.pointmass:Pointmass',
             kwargs={'difficulty': 0}
         )
     if 'PointmassMedium-v0' not in registry.env_specs:
         register(
             id='PointmassMedium-v0',
-            entry_point='roble.envs.pointmass.pointmass:Pointmass',
+            # entry_point='roble.envs.pointmass.pointmass:Pointmass',
+            entry_point='hw8.roble.envs.pointmass.pointmass:Pointmass',
             kwargs={'difficulty': 1}
         )
     if 'PointmassHard-v0' not in registry.env_specs:
         register(
             id='PointmassHard-v0',
-            entry_point='roble.envs.pointmass.pointmass:Pointmass',
+            # entry_point='roble.envs.pointmass.pointmass:Pointmass',
+            entry_point='hw8.roble.envs.pointmass.pointmass:Pointmass',
             kwargs={'difficulty': 2}
         )
     if 'PointmassVeryHard-v0' not in registry.env_specs:
@@ -68,7 +70,7 @@ def register_custom_envs():
 
 
 def get_env_kwargs(env_name):
-    if env_name in ['MsPacman-v0', 'PongNoFrameskip-v4']:
+    if env_name in ['MsPacman-v0', 'PongNoFrameskip-v4', 'ALE/MsPacman-v5']:
         kwargs = {
             'learning_starts': 50000,
             'target_update_freq': 10000,
@@ -79,7 +81,8 @@ def get_env_kwargs(env_name):
             'grad_norm_clipping': 10,
             'input_shape': (84, 84, 4),
             'env_wrappers': wrap_deepmind,
-            'frame_history_len': 4,
+            # 'frame_history_len': 4,
+            'frame_history_len': 1,
             'gamma': 0.99,
         }
         kwargs['optimizer_spec'] = atari_optimizer(kwargs['num_timesteps'])
@@ -177,7 +180,8 @@ def create_atari_q_network(ob_dim, num_actions):
     # TODO: diivde input by 255
     return nn.Sequential(
         PreprocessAtari(),
-        nn.Conv2d(in_channels=4, out_channels=32, kernel_size=8, stride=4),
+        # nn.Conv2d(in_channels=4, out_channels=32, kernel_size=8, stride=4),
+        nn.Conv2d(in_channels=1, out_channels=32, kernel_size=8, stride=4),
         nn.ReLU(),
         nn.Conv2d(in_channels=32, out_channels=64, kernel_size=4, stride=2),
         nn.ReLU(),

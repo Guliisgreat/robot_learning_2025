@@ -8,6 +8,7 @@ from hw8.roble.infrastructure.rl_trainer import RL_Trainer
 from hw8.roble.agents.explore_or_exploit_agent import ExplorationOrExploitationAgent
 from hw8.roble.agents.dqn_agent import DQNAgent
 from hw8.roble.infrastructure.dqn_utils import get_env_kwargs, PiecewiseSchedule, ConstantSchedule
+from hw8.roble.infrastructure import pytorch_util as ptu
 
 from omegaconf import DictConfig, OmegaConf
 
@@ -107,6 +108,12 @@ def my_app(cfg: DictConfig):
     ###################
 
     trainer = Q_Trainer(params)
+    
+    # Print GPU information after initialization
+    print("\n\n\nGPU INFORMATION:")
+    ptu.print_gpu_info()
+    print("\n\n\n")
+    
     trainer.run_training_loop()
 
 if __name__ == "__main__":

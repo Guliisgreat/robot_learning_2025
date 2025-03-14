@@ -1,7 +1,7 @@
-from hw5.roble.envs import ant
-from hw5.roble.envs import cheetah
-from hw5.roble.envs import obstacles
-from hw5.roble.envs import reacher
+from hw8.roble.envs import ant
+from hw8.roble.envs import cheetah
+from hw8.roble.envs import obstacles
+from hw8.roble.envs import reacher
 
 from gym.envs.registration import register
 

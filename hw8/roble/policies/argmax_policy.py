@@ -25,16 +25,29 @@ class ArgMaxPolicy(object):
         # at the current observation as the output (get it from hw3)
         # NOTE: you should adapt your code so that it considers the boltzmann distribution case
 
-        q_values = TODO
+        # Get Q-values from the critic network
+        q_values = self.critic.qa_values(observation)
 
         if self.use_boltzmann:
-            distribution = np.exp(q_values) / np.sum(np.exp(q_values))
-            action = self.sample_discrete(distribution)
-
+            # Use Boltzmann distribution for exploration
+            # Convert Q-values to probabilities using softmax
+            # Add small epsilon for numerical stability
+            q_values = q_values - np.max(q_values, axis=1, keepdims=True)  # For numerical stability
+            exp_q = np.exp(q_values)
+            probabilities = exp_q / np.sum(exp_q, axis=1, keepdims=True)
+            
+            # Sample actions according to these probabilities
+            action = self.sample_discrete(probabilities)
         else:
-            action = TODO
+            # Greedy action selection - take action with highest Q-value
+            action = np.argmax(q_values, axis=1)
 
-        return TODO
+        # If it's a single observation, return a scalar action
+        if len(obs.shape) <= 3:
+            return int(action[0])  # Convert to int
+        
+        # For batch observations, convert array elements to integers
+        return np.array([int(a) for a in action])
 
     def sample_discrete(self, p):
         # https://stackoverflow.com/questions/40474436/how-to-apply-numpy-random-choice-to-a-matrix-of-probability-values-vectorized-s

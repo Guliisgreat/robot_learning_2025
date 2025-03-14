@@ -3,7 +3,8 @@ import torch
 import torch.optim as optim
 from torch.nn import utils
 from torch import nn
-
+import torch.nn.functional as F
+import numpy as np
 
 from hw8.roble.infrastructure import pytorch_util as ptu
 
@@ -44,7 +45,28 @@ class CQLCritic(BaseCritic):
 
     def dqn_loss(self, ob_no, ac_na, next_ob_no, reward_n, terminal_n):
         """ Implement DQN Loss """
-
+        # Predict Q-values of current state
+        qa_t_values = self.q_net(ob_no)
+        q_t_values = torch.gather(qa_t_values, 1, ac_na.unsqueeze(1)).squeeze(1)
+        
+        # Compute TD-target given next state
+        qa_tp1_values = self.q_net_target(next_ob_no)
+        if self.double_q:
+            next_actions = self.q_net(next_ob_no).argmax(dim=1)
+            q_tp1 = torch.gather(qa_tp1_values, 1, next_actions.unsqueeze(1)).squeeze(1)
+        else:
+            # In regular Q-learning, we just take the max over all actions
+            q_tp1 = qa_tp1_values.max(dim=1)[0]
+        
+        # If the episode terminated, there is no next Q-value
+        q_tp1 = q_tp1 * (1 - terminal_n)
+        
+        # Compute the target Q-value
+        target = reward_n + self.gamma * q_tp1
+        
+        # Compute the loss between current Q-values and target Q-values
+        loss = self.loss(q_t_values, target.detach())
+        
         return loss, qa_t_values, q_t_values
 
 
@@ -73,20 +95,34 @@ class CQLCritic(BaseCritic):
         # Compute the DQN Loss 
         loss, qa_t_values, q_t_values = self.dqn_loss(
             ob_no, ac_na, next_ob_no, reward_n, terminal_n
-            )
+        )
         
         # CQL Implementation
-        # TODO: Implement CQL as described in the pdf and paper
-        # Hint: After calculating cql_loss, augment the loss appropriately
-        q_t_logsumexp = None
-        cql_loss = None
+        # Calculate the logsumexp of the Q-values for all actions
+        # This represents the "out-of-distribution" Q-values
+        q_t_logsumexp = torch.logsumexp(qa_t_values, dim=1)
+        
+        # The CQL loss is the difference between the logsumexp of all Q-values
+        # and the Q-values for the actions in the dataset
+        # This penalizes overestimation of Q-values for actions not in the dataset
+        cql_loss = (q_t_logsumexp - q_t_values).mean()
+        
+        # Combine the DQN loss with the CQL loss, weighted by the CQL alpha parameter
+        total_loss = loss + self.cql_alpha * cql_loss
+
+        # Optimize the network
+        self.optimizer.zero_grad()
+        total_loss.backward()
+        if self.grad_norm_clipping is not None:
+            torch.nn.utils.clip_grad_norm_(self.q_net.parameters(), self.grad_norm_clipping)
+        self.optimizer.step()
 
         info = {'Training Loss': ptu.to_numpy(loss)}
 
-        # TODO: Uncomment these lines after implementing CQL
-        # info['CQL Loss'] = ptu.to_numpy(cql_loss)
-        # info['Data q-values'] = ptu.to_numpy(q_t_values).mean()
-        # info['OOD q-values'] = ptu.to_numpy(q_t_logsumexp).mean()
+        # Add CQL-specific metrics to the info dictionary
+        info['CQL Loss'] = ptu.to_numpy(cql_loss)
+        info['Data q-values'] = ptu.to_numpy(q_t_values).mean()
+        info['OOD q-values'] = ptu.to_numpy(q_t_logsumexp).mean()
         
         self.learning_rate_scheduler.step()
 

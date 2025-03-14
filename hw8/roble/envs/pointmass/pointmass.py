@@ -342,8 +342,8 @@ class Pointmass(gym.Env):
   def reset(self, seed=None):
     if seed: self.seed(seed)
         
-    if len(self.obs_vec) > 0:
-      self.last_trajectory = self.plot_trajectory()
+    # if len(self.obs_vec) > 0:
+    #   self.last_trajectory = self.plot_trajectory()
     
     self.plt.clf()
     self.timesteps_left = self.max_episode_steps

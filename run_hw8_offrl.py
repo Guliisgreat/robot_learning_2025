@@ -3,7 +3,7 @@ from omegaconf import DictConfig, OmegaConf
 
 from hw8.hw8 import my_app
 
-@hydra.main(config_path="conf", config_name="config_hw8")
+@hydra.main(config_path="conf", config_name="config_hw8_cql")
 def my_main(cfg: DictConfig):
     my_app(cfg)
 

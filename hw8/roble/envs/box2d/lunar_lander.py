@@ -365,11 +365,16 @@ class LunarLander(gym.Env):
         return np.array(state), reward, done, info
 
     def _render(self, mode='human', close=False):
+        return None
+    
         if close:
             if self.viewer is not None:
                 self.viewer.close()
                 self.viewer = None
             return
+        
+        if mode == 'human':
+            return None
 
         from gym.envs.classic_control import rendering
         if self.viewer is None:

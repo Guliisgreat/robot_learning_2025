@@ -11,15 +11,18 @@ class DQNCritic(BaseCritic):
     @classu.hidden_member_initialize
     def __init__(self, **kwargs):
         super().__init__()
-        self.ob_dim = kwargs['ob_dim']
+        # self.ob_dim = kwargs['ob_dim']
+        self.ob_dim = kwargs['alg']['ob_dim']
 
         if isinstance(self.ob_dim, int):
             self.input_shape = (self.ob_dim,)
         else:
             self.input_shape = kwargs['input_shape']
             
-        self.ac_dim = kwargs['ac_dim']
-        self.double_q = kwargs['double_q']
+        # self.ac_dim = kwargs['ac_dim']
+        self.ac_dim = kwargs['alg']['ac_dim']
+
+        self.double_q = kwargs['alg']['double_q']      
         self.grad_norm_clipping = kwargs['grad_norm_clipping']
         self.gamma = kwargs['gamma']
 
@@ -65,23 +68,26 @@ class DQNCritic(BaseCritic):
         qa_t_values = self.q_net(ob_no)
         q_t_values = torch.gather(qa_t_values, 1, ac_na.unsqueeze(1)).squeeze(1)
         
-        # TODO compute the Q-values from the target network 
-        qa_tp1_values = TODO
+        # Compute the Q-values from the target network 
+        qa_tp1_values = self.q_net_target(next_ob_no)
 
         if self.double_q:
-            # You must fill this part for Q2 of the Q-learning portion of the homework.
             # In double Q-learning, the best action is selected using the Q-network that
             # is being updated, but the Q-value for this action is obtained from the
-            # target Q-network. Please review Lecture 8 for more details,
-            # and page 4 of https://arxiv.org/pdf/1509.06461.pdf is also a good reference.
-            TODO
+            # target Q-network.
+            
+            # Get actions that would be selected according to the current Q-network
+            qa_tp1_values_current = self.q_net(next_ob_no)
+            _, best_actions = qa_tp1_values_current.max(dim=1)
+            
+            # Use these actions to get Q-values from the target network
+            q_tp1 = torch.gather(qa_tp1_values, 1, best_actions.unsqueeze(1)).squeeze(1)
         else:
             q_tp1, _ = qa_tp1_values.max(dim=1)
 
-        # TODO compute targets for minimizing Bellman error
-        # HINT: as you saw in lecture, this would be:
-            #currentReward + self.gamma * qValuesOfNextTimestep * (not terminal)
-        target = TODO
+        # Compute targets for minimizing Bellman error
+        # currentReward + self.gamma * qValuesOfNextTimestep * (not terminal)
+        target = reward_n + self.gamma * q_tp1 * (1 - terminal_n)
         target = target.detach()
         
         assert q_t_values.shape == target.shape

@@ -1,7 +1,8 @@
 import numpy as np
 import time
 import copy
-
+import gym
+import gym.error as gym_error
 ############################################
 ############################################
 
@@ -55,7 +56,22 @@ def mean_squared_error(a, b):
 ############################################
 
 def sample_trajectory(env, policy, max_path_length, render=False, render_mode=('rgb_array')):
-    ob = env.reset()
+    # Set render to False to avoid display errors
+    render = False
+    
+    # ob = env.reset()
+
+    # Check if environment needs to be reset
+    try:
+        ob = env.reset()
+    except gym_error.Error as e:
+            # Force episode completion
+        done = False
+        while not done:    
+            _, _, done, _ = env.step(env.action_space.sample())
+        ob = env.reset()
+    
+    
     obs, acs, rewards, next_obs, terminals, image_obs = [], [], [], [], [], []
     steps = 0
     while True:
@@ -67,10 +83,21 @@ def sample_trajectory(env, policy, max_path_length, render=False, render_mode=('
                     else:
                         image_obs.append(env.unwrapped.sim.render(height=500, width=500)[::-1])
                 else:
-                    image_obs.append(env.render(mode=render_mode))
+                    try:
+                        image_obs.append(env.render(mode=render_mode))
+                    except:
+                        # If rendering fails, just continue without it
+                        pass
             if 'human' in render_mode:
-                env.render(mode=render_mode)
-                time.sleep(env.model.opt.timestep)
+                try:
+                    env.render(mode=render_mode)
+                    if hasattr(env, 'model') and hasattr(env.model, 'opt'):
+                        time.sleep(env.model.opt.timestep)
+                    else:
+                        time.sleep(0.05)  # Default sleep time
+                except:
+                    # If rendering fails, just continue without it
+                    pass
         obs.append(ob)
         ac = policy.get_action(ob)
         # ac = ac[0]
