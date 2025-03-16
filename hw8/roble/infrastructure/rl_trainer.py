@@ -15,6 +15,8 @@ from hw8.roble.infrastructure.atari_wrappers import ReturnWrapper
 
 from hw8.roble.infrastructure import utils
 from hw8.roble.infrastructure.logger import Logger
+from hw8.roble.infrastructure import pytorch_util as ptu
+
 
 from hw8.roble.agents.explore_or_exploit_agent import ExplorationOrExploitationAgent
 from hw8.roble.infrastructure.dqn_utils import (
@@ -42,8 +44,23 @@ class RL_Trainer(object):
         #############
 
         # Get params, create logger
+        # Add this near where the logger is initialized
+        
+        logdir = params["logging"]["logdir"]
+        
+        # Set up both logging systems
+        # Custom logger for metrics
+        self.logger = Logger(logdir)
+        
+        # # Fix: Update log_to_stdout to handle all three arguments
+        # def log_to_stdout(value, key, itr):
+        #     original_log = self.logger.log_scalar
+        #     logging.info(f"[Iteration {itr}] {key}: {value}")
+        #     original_log(value, key, itr)
+        
+        # self.logger.log_scalar = log_to_stdout
+
         self.params = params
-        self.logger = Logger(self.params["logging"]["logdir"])
 
         # Set random seeds
         seed = self.params["logging"]["random_seed"]
@@ -166,6 +183,8 @@ class RL_Trainer(object):
         #############
 
         self.agent = agent_class(self.env, self.params)
+
+
 
     def run_training_loop(
         self,
@@ -322,10 +341,9 @@ class RL_Trainer(object):
             # else:
             #     # For other agents like DQNAgent, add the collected paths to the replay buffer
             #                 self.agent.add_to_replay_buffer(paths)
-            
+
             if not isinstance(self.agent, ExplorationOrExploitationAgent):
                 self.agent.add_to_replay_buffer(paths)
-
 
             # train agent (using sampled data from replay buffer)
             # if itr % print_period == 0:
@@ -333,22 +351,25 @@ class RL_Trainer(object):
             all_logs = self.train_agent()
 
             # Log densities and output trajectories
-            if isinstance(self.agent, ExplorationOrExploitationAgent) and (
-                itr % print_period == 0
-            ):
-                self.dump_density_graphs(itr)
+
 
             # log/save
             if self.logvideo or self.logmetrics:
                 # Perform basic logging every iteration
-                print("\nBeginning logging procedure...")
-                
+                # 
+
                 # Only perform full evaluation (including policy evaluation) every eval_frequency iterations
-                should_evaluate = (itr % self.params["logging"]["eval_frequency"] == 0) or (itr == self.params['alg']['n_iter'] - 1)
-                
+                should_evaluate = (
+                    itr % self.params["logging"]["eval_frequency"] == 0
+                ) or (itr == self.params["alg"]["n_iter"] - 1)
+
+
                 if isinstance(self.agent, ExplorationOrExploitationAgent):
                     if use_wandb:
                         if should_evaluate:
+                            print("\nBeginning logging procedure...")
+                            self.dump_density_graphs(itr)
+                            
                             self.perform_logging_wandb(
                                 itr, paths, eval_policy, train_video_paths, all_logs
                             )
@@ -364,8 +385,12 @@ class RL_Trainer(object):
 
                     else:
                         self.perform_logging(
-                            itr, paths, eval_policy, train_video_paths, all_logs, 
-                            evaluate=should_evaluate
+                            itr,
+                            paths,
+                            eval_policy,
+                            train_video_paths,
+                            all_logs,
+                            evaluate=should_evaluate,
                         )
 
                 # Save parameters on evaluation iterations
@@ -519,7 +544,9 @@ class RL_Trainer(object):
 
             self.logger.flush()
 
-    def perform_logging(self, itr, paths, eval_policy, train_video_paths, all_logs, evaluate=True):
+    def perform_logging(
+        self, itr, paths, eval_policy, train_video_paths, all_logs, evaluate=True
+    ):
 
         if evaluate:
             # collect eval trajectories, for logging
@@ -622,7 +649,7 @@ class RL_Trainer(object):
         plt.clf()
         ii, jj = np.meshgrid(np.linspace(0, 1), np.linspace(0, 1))
         obs = np.stack([ii.flatten(), jj.flatten()], axis=1)
-        
+
         # Use get_prediction_error instead of forward_np
         density = self.agent.exploration_model.get_prediction_error(obs)
         density = density.reshape(ii.shape)
@@ -671,7 +698,8 @@ class RL_Trainer(object):
         if self.logmetrics or self.logvideo:
 
             eval_paths, eval_envsteps_this_batch = utils.sample_trajectories(
-                self.eval_env,
+                # self.eval_env,
+                self.env,
                 eval_policy,
                 self.params["alg"]["eval_batch_size"],
                 self.params["env"]["max_episode_length"],
@@ -702,9 +730,50 @@ class RL_Trainer(object):
                     and self.agent.exploration_stats
                 ):
                     for key, value in self.agent.exploration_stats.items():
-                        wandb.log(
-                            {f"exploration/{key}": value}, step=itr
-                        )
+                        wandb.log({f"exploration/{key}": value}, step=itr)
+
+        if isinstance(self.agent, ExplorationOrExploitationAgent) and itr > self.params["alg"]["num_exploration_steps"]:
+            eval_q_metrics = self.agent.compare_eval_q_values(eval_paths)
+            wandb.log(eval_q_metrics, step=itr)
+
+        if self.logmetrics:
+            # returns, for logging
+            # train_returns = [path["reward"].sum() for path in paths]
+            eval_returns = [eval_path["reward"].sum() for eval_path in eval_paths]
+
+            # episode lengths, for logging
+            # train_ep_lens = [len(path["reward"]) for path in paths]
+            eval_ep_lens = [len(eval_path["reward"]) for eval_path in eval_paths]
+
+            # decide what to log
+            logs = OrderedDict()
+            logs["Eval_AverageReturn"] = np.mean(eval_returns)
+            logs["Eval_StdReturn"] = np.std(eval_returns)
+            logs["Eval_MaxReturn"] = np.max(eval_returns)
+            logs["Eval_MinReturn"] = np.min(eval_returns)
+            logs["Eval_AverageEpLen"] = np.mean(eval_ep_lens)
+
+            # logs["Train_AverageReturn"] = np.mean(train_returns)
+            # logs["Train_StdReturn"] = np.std(train_returns)
+            # logs["Train_MaxReturn"] = np.max(train_returns)
+            # logs["Train_MinReturn"] = np.min(train_returns)
+            # logs["Train_AverageEpLen"] = np.mean(train_ep_lens)
+
+            logs["Train_EnvstepsSoFar"] = self.total_envsteps
+            logs["TimeSinceStart"] = time.time() - self.start_time
+            logs.update(last_log)
+
+            # if itr == 0:
+            #     self.initial_return = np.mean(train_returns)
+            # logs["Initial_DataCollection_AverageReturn"] = self.initial_return
+
+            # perform the logging
+            for key, value in logs.items():
+                print("{} : {}".format(key, value))
+                self.logger.log_scalar(value, key, itr)
+            print("Done logging...\n\n")
+
+            self.logger.flush()
 
         # Log videos
 

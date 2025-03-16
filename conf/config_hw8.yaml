@@ -1,17 +1,18 @@
 env:
     # env_name: "PointmassHard-v0" # ['PointmassEasy-v0', 'PointmassMedium-v0', 'PointmassHard-v0', 'PointmassVeryHard-v0', 'DrunkSpider-v0']
-    env_name: "MsPacman-v0"
-    # env_name: "LunarLander-v3"
+    #env_name: "MsPacman-v0"
+    env_name: "LunarLander-v3"
     max_episode_length: 200
-    exp_name: 'todo'
+    exp_name: 'LunarLander-v3-double-q'
     atari: True
 
 alg:
     # rl_alg: 'explore_or_exploit' ## RL training algorithm ['explore_exploit', 'cql', 'safe_rl']
     rl_alg: 'dqn'
     n_iter: 50000
-    batch_size: 256        ## The min amount of experience to collect before a training update
-    train_batch_size: 128  ## training batch size used for computing gradients of q function or policy
+    batch_size: 128        ## The min amount of experience to collect before a training update
+    batch_size: 128        ## The min amount of experience to collect before a training update
+    train_batch_size: 256  ## training batch size used for computing gradients of q function or policy
     eval_batch_size: 1000  ## How much experience should be collected over the environment to evaluate the average reward of a policy
     use_rnd: False
     num_exploration_steps: 10000
@@ -39,7 +40,7 @@ alg:
     optimizer_spec:  0
     replay_buffer_size: 1000000
     # frame_history_len: 1
-    frame_history_len: 4
+    frame_history_len: 1
     gamma: 0.99
     n_layers_critic: 2
     size_hidden_critic: 64
@@ -64,4 +65,4 @@ logging:
     save_params: false # Should the parameters given to the script be saved? (Always...)
     random_seed: 1234
     logdir: ""
-    eval_frequency: 100
+    eval_frequency: 1000

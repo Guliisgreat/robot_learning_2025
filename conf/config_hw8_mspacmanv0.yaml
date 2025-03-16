@@ -3,7 +3,7 @@ env:
     env_name: "MsPacman-v0"
     # env_name: "LunarLander-v3"
     max_episode_length: 200
-    exp_name: 'todo'
+    exp_name: 'MsPacman-v0-standard-dqn'
     atari: True
 
 alg:
@@ -32,14 +32,14 @@ alg:
 
     num_critic_updates_per_agent_update: 1 ## Number of training updates after #batch_size experience is collected.
     # learning_starts: 2000  ## How much initial experience to collect before training begins
-    learning_starts: 5000
+    learning_starts: 10000
     learning_freq: 1 
     target_update_freq: 1
     exploration_schedule: 0
     optimizer_spec:  0
     replay_buffer_size: 1000000
     # frame_history_len: 1
-    frame_history_len: 4
+    frame_history_len: 1
     gamma: 0.95
     n_layers_critic: 2
     size_hidden_critic: 64
@@ -64,4 +64,4 @@ logging:
     save_params: false # Should the parameters given to the script be saved? (Always...)
     random_seed: 1234
     logdir: ""
-    eval_frequency: 100
+    eval_frequency: 1000
