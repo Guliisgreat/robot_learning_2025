@@ -11,7 +11,6 @@ alg:
     rl_alg: 'dqn'
     n_iter: 50000
     batch_size: 128        ## The min amount of experience to collect before a training update
-    batch_size: 128        ## The min amount of experience to collect before a training update
     train_batch_size: 256  ## training batch size used for computing gradients of q function or policy
     eval_batch_size: 1000  ## How much experience should be collected over the environment to evaluate the average reward of a policy
     use_rnd: False
@@ -27,7 +26,7 @@ alg:
     use_boltzmann: True
     no_gpu: False
     gpu_id: 0
-    double_q: True
+    double_q: False
     # num_agent_train_steps_per_iter: 1 ## Number of training updates after #batch_size experience is collected. 
     num_agent_train_steps_per_iter: 4 ## Number of training updates after #batch_size experience is collected. 
 
