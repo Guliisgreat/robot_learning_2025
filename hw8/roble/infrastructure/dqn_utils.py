@@ -113,7 +113,7 @@ def get_env_kwargs(env_name):
         def pointmass_empty_wrapper(env):
             return env
         kwargs = {
-            'optimizer_spec': pointmass_optimizer(),
+            'optimizer_spec': pointmass_optimizer(lr=1e-1),
             'q_func': create_lander_q_network,
             'replay_buffer_size': int(1e5),
             'gamma': 0.95,
@@ -226,16 +226,17 @@ def atari_optimizer(num_timesteps):
         constructor=optim.Adam,
         optim_kwargs=dict(
             lr=1e-3,
+            
             eps=1e-4
         ),
         learning_rate_schedule=lambda t: lr_schedule.value(t),
     )
 
-def pointmass_optimizer():
+def pointmass_optimizer(lr):
     return OptimizerSpec(
         constructor=optim.Adam,
         optim_kwargs=dict(
-            lr=1,
+            lr=lr,
         ),
         learning_rate_schedule=lambda epoch: 1e-3,  # keep init learning rate
     )

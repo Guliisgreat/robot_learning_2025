@@ -13,8 +13,8 @@ alg:
     train_batch_size: 256  ## training batch size used for computing gradients of q function or policy
     eval_batch_size: 4096  ## How much experience should be collected over the environment to evaluate the average reward of a policy
     use_rnd: True
-    num_exploration_steps: 10000
-    unsupervised_exploration: True
+    num_exploration_steps: 100000
+    unsupervised_exploration: True 
     offline_exploitation: True
     cql_alpha: 0.1
     exploit_rew_shift: 0.0
@@ -25,15 +25,15 @@ alg:
     use_boltzmann: True
     no_gpu: False
     gpu_id: 0
-    double_q: True
+    double_q: False
     # num_agent_train_steps_per_iter: 1 ## Number of training updates after #batch_size experience is collected. 
-    num_agent_train_steps_per_iter: 4 ## Number of training updates after #batch_size experience is collected. 
+    num_agent_train_steps_per_iter: 1 ## Number of training updates after #batch_size experience is collected. 
 
     num_critic_updates_per_agent_update: 1 ## Number of training updates after #batch_size experience is collected.
     # learning_starts: 2000  ## How much initial experience to collect before training begins
-    learning_starts: 5000
-    learning_freq: 1 
-    target_update_freq: 3000
+    learning_starts: 50000
+    learning_freq: 1
+    target_update_freq: 1
     exploration_schedule: 0
     optimizer_spec:  0
     replay_buffer_size: 1000000
@@ -63,4 +63,4 @@ logging:
     save_params: false # Should the parameters given to the script be saved? (Always...)
     random_seed: 1234
     logdir: ""
-    eval_frequency: 1000
+    eval_frequency: 2000
